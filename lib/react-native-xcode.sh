@@ -66,10 +66,12 @@ fi
 
 # Path to react-native folder inside node_modules
 REACT_NATIVE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../react-native" && pwd)"
+# The project should be located next to where react-native is installed
+# in node_modules.
+PROJECT_ROOT=${PROJECT_ROOT:-"$REACT_NATIVE_DIR/../.."}
 SCHEMES_MANAGER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# Xcode project file for React Native apps is located in ios/ subfolder
-cd ..
+cd $PROJECT_ROOT
 
 # Define NVM_DIR and source the nvm.sh setup script
 [ -z "$NVM_DIR" ] && export NVM_DIR="$HOME/.nvm"
@@ -94,9 +96,19 @@ elif [[ -x "$(command -v brew)" && -x "$(brew --prefix nodenv)/bin/nodenv" ]]; t
   eval "$("$(brew --prefix nodenv)/bin/nodenv" init -)"
 fi
 
+# Set up the ndenv of anyenv if preset
+if [[ ! -x node && -d ${HOME}/.anyenv/bin ]]; then
+  export PATH=${HOME}/.anyenv/bin:${PATH}
+  if [[ "$(anyenv envs | grep -c ndenv )" -eq 1 ]]; then
+    eval "$(anyenv init -)"
+  fi
+fi
+
 [ -z "$NODE_BINARY" ] && export NODE_BINARY="node"
 
-[ -z "$CLI_PATH" ] && export CLI_PATH="$REACT_NATIVE_DIR/local-cli/cli.js"
+[ -z "$NODE_ARGS" ] && export NODE_ARGS=""
+
+[ -z "$CLI_PATH" ] && export CLI_PATH="$REACT_NATIVE_DIR/cli.js"
 
 [ -z "$BUNDLE_COMMAND" ] && BUNDLE_COMMAND="bundle"
 
@@ -116,7 +128,7 @@ nodejs_not_found()
   exit 2
 }
 
-type $NODE_BINARY >/dev/null 2>&1 || nodejs_not_found
+type "$NODE_BINARY" >/dev/null 2>&1 || nodejs_not_found
 
 if [ $? -ne 0 ]; then
     echo "error: failing determining if plist changes were required." >&2
